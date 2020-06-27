@@ -5,8 +5,20 @@
  */
 package components;
 
+import entities.Account;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.border.TitledBorder;
+import services.FileHandle;
+import services.MyDatabase;
 
 /**
  *
@@ -20,19 +32,136 @@ public class DesignFrame extends javax.swing.JFrame {
     private Color colorActive = new Color(204, 0, 51);
     private Color colorUnActive = new Color(0, 0, 0);
     private CardLayout cardContentLayout = null;
-    
+    private ArrayList<ProductCard> listProductCard = new ArrayList<ProductCard>();
+    private int categoryID = 0;
+    private int producerId = 0;
+    private int sortId = 0;
+    private String txtSearch = "";
+    private Account account = null;
+    private MyDatabase db = null;
+    private FileHandle fileHandle = null;
+
     public DesignFrame() {
         initComponents();
-        cardContentLayout = (CardLayout)this.contentPanel.getLayout();
+        db = new MyDatabase();
+        fileHandle = new FileHandle();
+        cardContentLayout = (CardLayout) this.contentPanel.getLayout();
         this.setVisible(true);
+        this.setLocationRelativeTo(null);
+        showListProducer();
+        
+        labelHello.setForeground(new Color(204, 0, 51));
+        labelHello.setText("Đăng nhập hoặc đăng ký");
+        labelHello.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLogout.setVisible(false);
+        
+        ArrayList<String> ar = fileHandle.read();
+        if (ar != null) {
+            login(ar.get(0), ar.get(1), ar.get(2));
+        }
     }
     
+    private void logout(){
+        labelHello.setForeground(new Color(204, 0, 51));
+        labelHello.setText("Đăng nhập hoặc đăng ký");
+        labelHello.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLogout.setVisible(false);
+        account = null;
+        fileHandle.clear();
+        turnOffAllActive();
+        this.ActiveHome.setBackground(colorActive);
+        this.cardContentLayout.show(this.contentPanel, "HomeContent");
+    }
+    
+    public void login(String id, String username, String name) {
+        account = new Account(id, username, name);
+        labelHello.setForeground(new Color(255, 255, 255));
+        labelHello.setText("Xin chào: " + name);
+        labelHello.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        btnLogout.setVisible(true);
+    }
+
+    private void showListProducer() {
+        ResultSet rs = db.query("select id, name from producer");
+        ArrayList<String> listProducer = new ArrayList<>();
+        try {
+            while (rs.next()) {
+                listProducer.add(rs.getString("name"));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DesignFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        listProducer.forEach(name -> producerFilterCombobox.addItem(name));
+    }
+
     private void turnOffAllActive() {
         this.ActiveAccount.setBackground(colorUnActive);
         this.ActiveFeedback.setBackground(colorUnActive);
         this.ActiveHome.setBackground(colorUnActive);
         this.ActiveXeso.setBackground(colorUnActive);
         this.ActiveXetayga.setBackground(colorUnActive);
+    }
+
+    private void showProduct() {
+        int n = listProductCard.size();
+        int row = (n % 2 == 0) ? n / 2 : (n / 2 + 1);
+        row = row < 1 ? 1 : row;
+        XetaygaListProduct.removeAll();
+        this.XetaygaListProduct.setMinimumSize(new Dimension(780, row * 500));
+        this.XetaygaListProduct.setPreferredSize(new Dimension(780, row * 500));
+        GridLayout gl = (GridLayout) this.XetaygaListProduct.getLayout();
+        gl.setColumns(2);
+        gl.setRows(row);
+        TitledBorder border = (TitledBorder) this.jScrollPane1.getBorder();
+        border.setTitle("Có " + n + " sản phẩm");
+        listProductCard.forEach(cardPd -> XetaygaListProduct.add(cardPd));
+        if (n % 2 != 0) {
+            XetaygaListProduct.add(new EmtyCardProduct());
+        }
+        jScrollPane1.revalidate();
+        jScrollPane1.repaint();
+    }
+
+    private void repaintAll() {
+        producerFilterCombobox.setSelectedIndex(0);
+        sortCombobox.setSelectedIndex(0);
+    }
+
+    private void queryProduct(int categoryId, int productId, int sortId) {
+        String sql;
+        ArrayList<ProductCard> data = new ArrayList<>();
+        listProductCard.clear();
+        String sort = sortId == 0 ? "asc" : "desc";
+        sql = "select pd.id, pd.name, pd.cost as 'price', pd.image, ct.name as 'category', pdc.name as 'producer'\n"
+                + "from product pd, category ct, producer pdc\n"
+                + "where\n"
+                + "    pd.categoryId = ct.id and\n"
+                + "    pd.producerId = pdc.id\n"
+                + (categoryId == 0 ? "and pd.name LIKE '%" + txtSearch + "%'\n" : " and pd.categoryId = " + categoryId + "\n")
+                + (productId == 0 ? "\n" : " and pd.producerId = " + productId + "\n")
+                + "    order by cost " + sort;
+        ResultSet list = db.query(sql);
+        try {
+            if (!list.isBeforeFirst()) {
+                showProduct();
+                return;
+            }
+            while (list.next()) {
+                data.add(new ProductCard(
+                        list.getString("name"),
+                        list.getString("producer"),
+                        list.getString("category"),
+                        list.getInt("price"),
+                        list.getString("image"),
+                        this
+                )
+                );
+            }
+            listProductCard = data;
+            showProduct();
+        } catch (SQLException ex) {
+            Logger.getLogger(DesignFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -69,11 +198,11 @@ public class DesignFrame extends javax.swing.JFrame {
         Title = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         ToolbarPanel = new javax.swing.JPanel();
-        jLabel12 = new javax.swing.JLabel();
-        jLabel13 = new javax.swing.JLabel();
+        labelHello = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
         searchTextField = new javax.swing.JTextField();
-        jLabel15 = new javax.swing.JLabel();
+        btnSearch = new javax.swing.JLabel();
+        btnLogout = new javax.swing.JLabel();
         contentPanel = new javax.swing.JPanel();
         HomeContent = new javax.swing.JPanel();
         banner = new javax.swing.JLabel();
@@ -81,13 +210,11 @@ public class DesignFrame extends javax.swing.JFrame {
         jLabel17 = new javax.swing.JLabel();
         XetaygaContent = new javax.swing.JPanel();
         jLabel18 = new javax.swing.JLabel();
-        jComboBox1 = new javax.swing.JComboBox<>();
+        producerFilterCombobox = new javax.swing.JComboBox<>();
         jLabel22 = new javax.swing.JLabel();
-        jComboBox2 = new javax.swing.JComboBox<>();
+        sortCombobox = new javax.swing.JComboBox<>();
         jScrollPane1 = new javax.swing.JScrollPane();
         XetaygaListProduct = new javax.swing.JPanel();
-        XesoContent = new javax.swing.JPanel();
-        jLabel19 = new javax.swing.JLabel();
         FeedbackContent = new javax.swing.JPanel();
         jLabel20 = new javax.swing.JLabel();
         AccountContent = new javax.swing.JPanel();
@@ -103,6 +230,7 @@ public class DesignFrame extends javax.swing.JFrame {
         panelMenu.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         MenuItemXetayga.setBackground(new java.awt.Color(0, 0, 0));
+        MenuItemXetayga.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         MenuItemXetayga.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 MenuItemXetaygaMouseClicked(evt);
@@ -154,6 +282,7 @@ public class DesignFrame extends javax.swing.JFrame {
         panelMenu.add(MenuItemXetayga, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 240, -1, -1));
 
         MenuItemHome.setBackground(new java.awt.Color(0, 0, 0));
+        MenuItemHome.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         MenuItemHome.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 MenuItemHomeMouseClicked(evt);
@@ -205,6 +334,7 @@ public class DesignFrame extends javax.swing.JFrame {
         panelMenu.add(MenuItemHome, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 138, -1, -1));
 
         MenuItemFeedback.setBackground(new java.awt.Color(0, 0, 0));
+        MenuItemFeedback.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         MenuItemFeedback.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 MenuItemFeedbackMouseClicked(evt);
@@ -256,6 +386,7 @@ public class DesignFrame extends javax.swing.JFrame {
         panelMenu.add(MenuItemFeedback, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 440, -1, -1));
 
         MenuItemAccount.setBackground(new java.awt.Color(0, 0, 0));
+        MenuItemAccount.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         MenuItemAccount.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 MenuItemAccountMouseClicked(evt);
@@ -307,6 +438,7 @@ public class DesignFrame extends javax.swing.JFrame {
         panelMenu.add(MenuItemAccount, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 540, -1, -1));
 
         MenuItemXeso.setBackground(new java.awt.Color(0, 0, 0));
+        MenuItemXeso.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         MenuItemXeso.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 MenuItemXesoMouseClicked(evt);
@@ -371,15 +503,45 @@ public class DesignFrame extends javax.swing.JFrame {
 
         ToolbarPanel.setBackground(new java.awt.Color(51, 51, 51));
 
-        jLabel12.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_logged.png"))); // NOI18N
-
-        jLabel13.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        jLabel13.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel13.setText("Xin chào: Huỳnh Huy Tuấn");
+        labelHello.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        labelHello.setForeground(new java.awt.Color(255, 255, 255));
+        labelHello.setText("Xin chào: Huỳnh Huy Tuấn");
+        labelHello.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                labelHelloMouseClicked(evt);
+            }
+        });
 
         jLabel14.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_cart.png"))); // NOI18N
 
-        jLabel15.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_search.png"))); // NOI18N
+        searchTextField.setText("Nhập tên sản phẩm...");
+        searchTextField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                searchTextFieldFocusLost(evt);
+            }
+        });
+        searchTextField.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                searchTextFieldMouseClicked(evt);
+            }
+        });
+
+        btnSearch.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_search.png"))); // NOI18N
+        btnSearch.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnSearch.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnSearchMouseClicked(evt);
+            }
+        });
+
+        btnLogout.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_logout.png"))); // NOI18N
+        btnLogout.setToolTipText("Đăng xuất");
+        btnLogout.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnLogout.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnLogoutMouseClicked(evt);
+            }
+        });
 
         javax.swing.GroupLayout ToolbarPanelLayout = new javax.swing.GroupLayout(ToolbarPanel);
         ToolbarPanel.setLayout(ToolbarPanelLayout);
@@ -389,22 +551,22 @@ public class DesignFrame extends javax.swing.JFrame {
                 .addGap(35, 35, 35)
                 .addComponent(searchTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 290, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel15)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 110, Short.MAX_VALUE)
+                .addComponent(btnSearch)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 114, Short.MAX_VALUE)
                 .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(labelHello, javax.swing.GroupLayout.PREFERRED_SIZE, 249, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel12)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 249, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(28, 28, 28))
+                .addComponent(btnLogout)
+                .addGap(20, 20, 20))
         );
         ToolbarPanelLayout.setVerticalGroup(
             ToolbarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLabel12, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
-            .addComponent(jLabel13, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jLabel14, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jLabel15, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ToolbarPanelLayout.createSequentialGroup()
+            .addComponent(labelHello, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jLabel14, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
+            .addComponent(btnSearch, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(btnLogout, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(ToolbarPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(searchTextField)
                 .addContainerGap())
@@ -421,7 +583,7 @@ public class DesignFrame extends javax.swing.JFrame {
         HomeContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         banner.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/banner.png"))); // NOI18N
-        HomeContent.add(banner, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 20, 670, -1));
+        HomeContent.add(banner, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 30, 670, -1));
 
         jLabel16.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
         jLabel16.setForeground(new java.awt.Color(204, 0, 0));
@@ -439,43 +601,41 @@ public class DesignFrame extends javax.swing.JFrame {
         jLabel18.setText("Lọc theo nhà sản xuất:");
         XetaygaContent.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 20, 200, 30));
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Tất cả" }));
-        XetaygaContent.add(jComboBox1, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 20, 170, 30));
+        producerFilterCombobox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Tất cả" }));
+        producerFilterCombobox.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        producerFilterCombobox.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                itemProducerChange(evt);
+            }
+        });
+        XetaygaContent.add(producerFilterCombobox, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 20, 170, 30));
 
         jLabel22.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel22.setText("Sắp sếp theo giá:");
         XetaygaContent.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 20, 160, 30));
 
-        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Tăng dần", "Giảm dần" }));
-        XetaygaContent.add(jComboBox2, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 20, 150, 30));
+        sortCombobox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Tăng dần", "Giảm dần" }));
+        sortCombobox.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        sortCombobox.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                sortComboboxItemStateChanged(evt);
+            }
+        });
+        XetaygaContent.add(sortCombobox, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 20, 150, 30));
 
-        jScrollPane1.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(255, 0, 51), 2, true));
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createTitledBorder("Có 5 sản phẩm"));
         jScrollPane1.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        jScrollPane1.setMinimumSize(new java.awt.Dimension(810, 523));
+        jScrollPane1.setPreferredSize(new java.awt.Dimension(810, 523));
 
-        javax.swing.GroupLayout XetaygaListProductLayout = new javax.swing.GroupLayout(XetaygaListProduct);
-        XetaygaListProduct.setLayout(XetaygaListProductLayout);
-        XetaygaListProductLayout.setHorizontalGroup(
-            XetaygaListProductLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 800, Short.MAX_VALUE)
-        );
-        XetaygaListProductLayout.setVerticalGroup(
-            XetaygaListProductLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1012, Short.MAX_VALUE)
-        );
-
+        XetaygaListProduct.setMinimumSize(new java.awt.Dimension(780, 1500));
+        XetaygaListProduct.setPreferredSize(new java.awt.Dimension(780, 1500));
+        XetaygaListProduct.setLayout(new java.awt.GridLayout(0, 2, 2, 2));
         jScrollPane1.setViewportView(XetaygaListProduct);
 
-        XetaygaContent.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 90, 800, 510));
+        XetaygaContent.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 90, 810, -1));
 
         contentPanel.add(XetaygaContent, "XetaygaContent");
-
-        XesoContent.setBackground(new java.awt.Color(255, 255, 255));
-        XesoContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
-
-        jLabel19.setText("Xe so");
-        XesoContent.add(jLabel19, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 90, 260, 90));
-
-        contentPanel.add(XesoContent, "XesoContent");
 
         FeedbackContent.setBackground(new java.awt.Color(255, 255, 255));
         FeedbackContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -522,20 +682,34 @@ public class DesignFrame extends javax.swing.JFrame {
 
     private void MenuItemXetaygaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_MenuItemXetaygaMouseClicked
         // TODO add your handling code here:
+        categoryID = 2;
+        producerId = 0;
+        sortId = 0;
+        repaintAll();
         turnOffAllActive();
         this.ActiveXetayga.setBackground(colorActive);
         this.cardContentLayout.show(this.contentPanel, "XetaygaContent");
+        queryProduct(categoryID, producerId, sortId);
     }//GEN-LAST:event_MenuItemXetaygaMouseClicked
 
     private void MenuItemXesoMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_MenuItemXesoMouseClicked
         turnOffAllActive();
         this.ActiveXeso.setBackground(colorActive);
-        this.cardContentLayout.show(this.contentPanel, "XesoContent");
+        this.cardContentLayout.show(this.contentPanel, "XetaygaContent");
+        categoryID = 1;
+        producerId = 0;
+        sortId = 0;
+        repaintAll();
+        queryProduct(categoryID, producerId, sortId);
         // TODO add your handling code here:
     }//GEN-LAST:event_MenuItemXesoMouseClicked
 
     private void MenuItemFeedbackMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_MenuItemFeedbackMouseClicked
         turnOffAllActive();
+        if (account == null) {
+            new AlertUnknowAccountDialog(this).showAlert();
+            return;
+        }
         this.ActiveFeedback.setBackground(colorActive);
         this.cardContentLayout.show(this.contentPanel, "FeedbackContent");
         // TODO add your handling code here:
@@ -547,6 +721,63 @@ public class DesignFrame extends javax.swing.JFrame {
         this.cardContentLayout.show(this.contentPanel, "AccountContent");
         // TODO add your handling code here:
     }//GEN-LAST:event_MenuItemAccountMouseClicked
+
+    private void searchTextFieldMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_searchTextFieldMouseClicked
+        // TODO add your handling code here:
+        String placeholder = "Nhập tên sản phẩm...";
+        if (searchTextField.getText().equals(placeholder)) {
+            searchTextField.setText("");
+        }
+    }//GEN-LAST:event_searchTextFieldMouseClicked
+
+    private void searchTextFieldFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_searchTextFieldFocusLost
+        // TODO add your handling code here:
+        String placeholder = "Nhập tên sản phẩm...";
+        if (searchTextField.getText().trim().equals("")) {
+            searchTextField.setText(placeholder);
+        }
+    }//GEN-LAST:event_searchTextFieldFocusLost
+
+    private void itemProducerChange(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_itemProducerChange
+        // TODO add your handling code here:
+        if (evt.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+            producerId = producerFilterCombobox.getSelectedIndex();
+            queryProduct(categoryID, producerId, sortId);
+        }
+    }//GEN-LAST:event_itemProducerChange
+
+    private void sortComboboxItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_sortComboboxItemStateChanged
+        // TODO add your handling code here:
+        if (evt.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+            sortId = sortCombobox.getSelectedIndex();
+            queryProduct(categoryID, producerId, sortId);
+        }
+    }//GEN-LAST:event_sortComboboxItemStateChanged
+
+    private void btnSearchMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnSearchMouseClicked
+        txtSearch = searchTextField.getText();
+        if (txtSearch.equals("Nhập tên sản phẩm...")) txtSearch = "";
+        sortId = 0;
+        producerId = 0;
+        turnOffAllActive();
+        cardContentLayout.show(this.contentPanel, "XetaygaContent");
+        sortCombobox.setSelectedIndex(0);
+        producerFilterCombobox.setSelectedIndex(0);
+        queryProduct(0, 0, 0);
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnSearchMouseClicked
+
+    private void labelHelloMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_labelHelloMouseClicked
+        if (account == null) {
+            new LoginDialog(this, true).setVisible(true);
+        }
+        // TODO add your handling code here:
+    }//GEN-LAST:event_labelHelloMouseClicked
+
+    private void btnLogoutMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnLogoutMouseClicked
+        // TODO add your handling code here:
+        logout();
+    }//GEN-LAST:event_btnLogoutMouseClicked
 
     /**
      * @param args the command line arguments
@@ -599,24 +830,19 @@ public class DesignFrame extends javax.swing.JFrame {
     private javax.swing.JPanel MenuItemXetayga;
     private javax.swing.JLabel Title;
     private javax.swing.JPanel ToolbarPanel;
-    private javax.swing.JPanel XesoContent;
     private javax.swing.JPanel XetaygaContent;
     private javax.swing.JPanel XetaygaListProduct;
     private javax.swing.JLabel banner;
+    private javax.swing.JLabel btnLogout;
+    private javax.swing.JLabel btnSearch;
     private javax.swing.JPanel contentPanel;
-    private javax.swing.JComboBox<String> jComboBox1;
-    private javax.swing.JComboBox<String> jComboBox2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
-    private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
-    private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel18;
-    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
@@ -629,8 +855,11 @@ public class DesignFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel labelHello;
     private javax.swing.JPanel panelBackground;
     private javax.swing.JPanel panelMenu;
+    private javax.swing.JComboBox<String> producerFilterCombobox;
     private javax.swing.JTextField searchTextField;
+    private javax.swing.JComboBox<String> sortCombobox;
     // End of variables declaration//GEN-END:variables
 }
