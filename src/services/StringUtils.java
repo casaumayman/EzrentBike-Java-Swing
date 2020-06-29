@@ -10,7 +10,7 @@ package services;
  * @author HuyTuan
  */
 public class StringUtils {
-    public String convertToPrice(int price) {
+    public String convertToPrice(long price) {
         int i = 0;
         String res = "";
         while (price != 0) {
@@ -22,6 +22,13 @@ public class StringUtils {
             }
         }
         if (res.charAt(0) == '.') res = res.substring(1, res.length());
+        return res;
+    }
+    
+    public String getStringPassword(char[] s){
+        String res = "";
+        for (int i=0; i<s.length; i++)
+            res += s[i];
         return res;
     }
 }

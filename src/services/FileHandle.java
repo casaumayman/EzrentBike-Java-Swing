@@ -32,7 +32,7 @@ public class FileHandle {
         file = new File("account.dat");
     }
 
-    public void write(String id, String username, String name, String endodePass) {
+    public void write(String id, String username, String name, String endodePass, int profileId) {
         try {
             outputStream = new FileOutputStream(file);
             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
@@ -43,7 +43,11 @@ public class FileHandle {
             outputStreamWriter.write(name);
             outputStreamWriter.write("\n");
             outputStreamWriter.write(endodePass);
+            outputStreamWriter.write("\n");
+            outputStreamWriter.write(Integer.toString(profileId));
             outputStreamWriter.flush();
+            outputStreamWriter.close();
+            outputStream.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(FileHandle.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -76,14 +80,17 @@ public class FileHandle {
     
     public void clear(){
         try {
-            if (file.delete()) {
-                System.out.println(file.getName() + " is deleted!");
+            if (isExist()) {
+                System.out.println(file.getName() + " is deleted! " + (file.delete() ? "true" : "false"));
             } else {
-                System.out.println("Delete operation is failed.");
+                System.out.println("file not exist.");
             }
         } catch(Exception e) {
             e.printStackTrace();
         }
     }
 
+    public boolean isExist() {
+        return file.exists();
+    }
 }

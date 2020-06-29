@@ -11,14 +11,24 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.TrayIcon;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.UUID;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import services.FileHandle;
 import services.MyDatabase;
+import services.StringUtils;
 
 /**
  *
@@ -49,19 +59,19 @@ public class DesignFrame extends javax.swing.JFrame {
         this.setVisible(true);
         this.setLocationRelativeTo(null);
         showListProducer();
-        
+
         labelHello.setForeground(new Color(204, 0, 51));
         labelHello.setText("Đăng nhập hoặc đăng ký");
         labelHello.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.setVisible(false);
-        
+
         ArrayList<String> ar = fileHandle.read();
         if (ar != null) {
-            login(ar.get(0), ar.get(1), ar.get(2));
+            login(ar.get(0), ar.get(1), ar.get(2), Integer.parseInt(ar.get(4)));
         }
     }
-    
-    private void logout(){
+
+    private void logout() {
         labelHello.setForeground(new Color(204, 0, 51));
         labelHello.setText("Đăng nhập hoặc đăng ký");
         labelHello.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -72,9 +82,9 @@ public class DesignFrame extends javax.swing.JFrame {
         this.ActiveHome.setBackground(colorActive);
         this.cardContentLayout.show(this.contentPanel, "HomeContent");
     }
-    
-    public void login(String id, String username, String name) {
-        account = new Account(id, username, name);
+
+    public void login(String id, String username, String name, int profileId) {
+        account = new Account(id, username, name, profileId);
         labelHello.setForeground(new Color(255, 255, 255));
         labelHello.setText("Xin chào: " + name);
         labelHello.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -148,12 +158,14 @@ public class DesignFrame extends javax.swing.JFrame {
             }
             while (list.next()) {
                 data.add(new ProductCard(
+                        list.getInt("id"),
                         list.getString("name"),
                         list.getString("producer"),
                         list.getString("category"),
                         list.getInt("price"),
                         list.getString("image"),
-                        this
+                        this,
+                        account
                 )
                 );
             }
@@ -199,7 +211,7 @@ public class DesignFrame extends javax.swing.JFrame {
         jLabel11 = new javax.swing.JLabel();
         ToolbarPanel = new javax.swing.JPanel();
         labelHello = new javax.swing.JLabel();
-        jLabel14 = new javax.swing.JLabel();
+        btnCard = new javax.swing.JLabel();
         searchTextField = new javax.swing.JTextField();
         btnSearch = new javax.swing.JLabel();
         btnLogout = new javax.swing.JLabel();
@@ -216,9 +228,28 @@ public class DesignFrame extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         XetaygaListProduct = new javax.swing.JPanel();
         FeedbackContent = new javax.swing.JPanel();
-        jLabel20 = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        txtFeedback = new javax.swing.JTextArea();
+        jLabel13 = new javax.swing.JLabel();
+        btnSubmit = new javax.swing.JPanel();
+        jLabel15 = new javax.swing.JLabel();
+        jLabel19 = new javax.swing.JLabel();
         AccountContent = new javax.swing.JPanel();
+        jLabel20 = new javax.swing.JLabel();
         jLabel21 = new javax.swing.JLabel();
+        txtEditUsername = new javax.swing.JTextField();
+        txtEditName = new javax.swing.JTextField();
+        jLabel23 = new javax.swing.JLabel();
+        btnEditName = new javax.swing.JLabel();
+        btnChangePassword = new javax.swing.JPanel();
+        jLabel24 = new javax.swing.JLabel();
+        jLabel25 = new javax.swing.JLabel();
+        CardContent = new javax.swing.JPanel();
+        jLabel14 = new javax.swing.JLabel();
+        jSeparator1 = new javax.swing.JSeparator();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        CardTable = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Thuê xe máy EzrentBike");
@@ -512,7 +543,13 @@ public class DesignFrame extends javax.swing.JFrame {
             }
         });
 
-        jLabel14.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_cart.png"))); // NOI18N
+        btnCard.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_cart.png"))); // NOI18N
+        btnCard.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnCard.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnCardMouseClicked(evt);
+            }
+        });
 
         searchTextField.setText("Nhập tên sản phẩm...");
         searchTextField.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -553,7 +590,7 @@ public class DesignFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnSearch)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 114, Short.MAX_VALUE)
-                .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btnCard, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(labelHello, javax.swing.GroupLayout.PREFERRED_SIZE, 249, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -563,7 +600,7 @@ public class DesignFrame extends javax.swing.JFrame {
         ToolbarPanelLayout.setVerticalGroup(
             ToolbarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(labelHello, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jLabel14, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
+            .addComponent(btnCard, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
             .addComponent(btnSearch, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(btnLogout, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addGroup(ToolbarPanelLayout.createSequentialGroup()
@@ -637,21 +674,146 @@ public class DesignFrame extends javax.swing.JFrame {
 
         contentPanel.add(XetaygaContent, "XetaygaContent");
 
-        FeedbackContent.setBackground(new java.awt.Color(255, 255, 255));
+        FeedbackContent.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         FeedbackContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel20.setText("Feedback");
-        FeedbackContent.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 90, 260, 90));
+        jLabel12.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabel12.setText("Góp ý phát triển sản phẩm");
+        FeedbackContent.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 50, 510, 70));
+
+        txtFeedback.setColumns(20);
+        txtFeedback.setFont(new java.awt.Font("Monospaced", 0, 18)); // NOI18N
+        txtFeedback.setRows(5);
+        jScrollPane2.setViewportView(txtFeedback);
+
+        FeedbackContent.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 190, 730, 310));
+
+        jLabel13.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jLabel13.setText("Vui lòng để lại lời nhắn của bạn:");
+        FeedbackContent.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 154, 350, 30));
+
+        btnSubmit.setBackground(new java.awt.Color(153, 0, 51));
+        btnSubmit.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnSubmit.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnSubmitMouseClicked(evt);
+            }
+        });
+        btnSubmit.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jLabel15.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabel15.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel15.setText("Gửi");
+        btnSubmit.add(jLabel15, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 10, 70, 40));
+
+        jLabel19.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_sendFeedback.png"))); // NOI18N
+        btnSubmit.add(jLabel19, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 10, 50, 40));
+
+        FeedbackContent.add(btnSubmit, new org.netbeans.lib.awtextra.AbsoluteConstraints(620, 520, 190, 60));
 
         contentPanel.add(FeedbackContent, "FeedbackContent");
 
         AccountContent.setBackground(new java.awt.Color(255, 255, 255));
         AccountContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel21.setText("ACcount");
-        AccountContent.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 90, 260, 90));
+        jLabel20.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabel20.setText("Hồ sơ cá nhân");
+        AccountContent.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 40, 270, 50));
+
+        jLabel21.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        jLabel21.setText("Tên tài khoản:");
+        AccountContent.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 200, 190, 40));
+
+        txtEditUsername.setEditable(false);
+        txtEditUsername.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        txtEditUsername.setText("dsadfaf");
+        AccountContent.add(txtEditUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 250, 440, 40));
+
+        txtEditName.setEditable(false);
+        txtEditName.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        AccountContent.add(txtEditName, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 370, 390, 40));
+
+        jLabel23.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        jLabel23.setText("Tên đầy đủ:");
+        AccountContent.add(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 320, 140, 40));
+
+        btnEditName.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/icons_edit_name.png"))); // NOI18N
+        btnEditName.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnEditName.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnEditNameMouseClicked(evt);
+            }
+        });
+        AccountContent.add(btnEditName, new org.netbeans.lib.awtextra.AbsoluteConstraints(800, 370, 50, 40));
+
+        btnChangePassword.setBackground(new java.awt.Color(0, 0, 0));
+        btnChangePassword.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(204, 0, 0), 2));
+        btnChangePassword.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnChangePassword.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnChangePasswordMouseClicked(evt);
+            }
+        });
+        btnChangePassword.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jLabel24.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jLabel24.setForeground(new java.awt.Color(204, 0, 51));
+        jLabel24.setText("Đổi mật khẩu");
+        btnChangePassword.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 10, 160, 30));
+
+        AccountContent.add(btnChangePassword, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 470, 210, 50));
+
+        jLabel25.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/avatar/default.png"))); // NOI18N
+        AccountContent.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(70, 210, 260, 310));
 
         contentPanel.add(AccountContent, "AccountContent");
+
+        CardContent.setBackground(new java.awt.Color(255, 255, 255));
+        CardContent.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jLabel14.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabel14.setText("Thông tin giỏ hàng");
+        CardContent.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 30, 360, 70));
+
+        jSeparator1.setForeground(new java.awt.Color(204, 0, 0));
+        jSeparator1.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        CardContent.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 110, 500, 10));
+
+        CardTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Tên xe", "Ngày bắt đầu thuê", "Ngày trả xe", "Số ngày thuê", "Giá thuê"
+            }
+        ) {
+            Class[] types = new Class [] {
+                java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.Long.class, java.lang.String.class
+            };
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane3.setViewportView(CardTable);
+        if (CardTable.getColumnModel().getColumnCount() > 0) {
+            CardTable.getColumnModel().getColumn(0).setResizable(false);
+            CardTable.getColumnModel().getColumn(1).setResizable(false);
+            CardTable.getColumnModel().getColumn(2).setResizable(false);
+            CardTable.getColumnModel().getColumn(3).setResizable(false);
+            CardTable.getColumnModel().getColumn(4).setResizable(false);
+        }
+
+        CardContent.add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(72, 160, 730, -1));
+
+        contentPanel.add(CardContent, "CardContent");
 
         panelBackground.add(contentPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 50, 880, 640));
 
@@ -717,8 +879,14 @@ public class DesignFrame extends javax.swing.JFrame {
 
     private void MenuItemAccountMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_MenuItemAccountMouseClicked
         turnOffAllActive();
+        if (account == null) {
+            new AlertUnknowAccountDialog(this).showAlert();
+            return;
+        }
         this.ActiveAccount.setBackground(colorActive);
         this.cardContentLayout.show(this.contentPanel, "AccountContent");
+        txtEditUsername.setText(account.getUsername());
+        txtEditName.setText(account.getName());
         // TODO add your handling code here:
     }//GEN-LAST:event_MenuItemAccountMouseClicked
 
@@ -756,7 +924,9 @@ public class DesignFrame extends javax.swing.JFrame {
 
     private void btnSearchMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnSearchMouseClicked
         txtSearch = searchTextField.getText();
-        if (txtSearch.equals("Nhập tên sản phẩm...")) txtSearch = "";
+        if (txtSearch.equals("Nhập tên sản phẩm...")) {
+            txtSearch = "";
+        }
         sortId = 0;
         producerId = 0;
         turnOffAllActive();
@@ -778,6 +948,89 @@ public class DesignFrame extends javax.swing.JFrame {
         // TODO add your handling code here:
         logout();
     }//GEN-LAST:event_btnLogoutMouseClicked
+
+    private void btnSubmitMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnSubmitMouseClicked
+        String feedbackContent = txtFeedback.getText();
+        String uniId = UUID.randomUUID().toString();
+        String sql = "insert into feedback(id, accountId, content) \n"
+                + "values ('" + uniId + "', '" + account.getId() + "', '" + feedbackContent + "');";
+        db.execStatment(sql);
+        new FeedbackSuccessDialog(this).showDialog();
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnSubmitMouseClicked
+
+    private boolean statusIsEditName = true;
+    private void btnEditNameMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEditNameMouseClicked
+        // TODO add your handling code here:
+        if (statusIsEditName) {
+            btnEditName.setIcon(new ImageIcon(getClass().getResource("/resources/icons_save.png")));
+            txtEditName.setEditable(true);
+            statusIsEditName = !statusIsEditName;
+        } else {
+            btnEditName.setIcon(new ImageIcon(getClass().getResource("/resources/icons_edit_name.png")));
+            txtEditName.setEditable(false);
+            statusIsEditName = !statusIsEditName;
+            String sql = "UPDATE profile\n"
+                    + "SET name = '" + txtEditName.getText().trim() + "'\n"
+                    + "WHERE id = " + account.getProfileId();
+            db.execStatment(sql);
+            labelHello.setText("Xin chào: " + txtEditName.getText().trim());
+            account.setName(txtEditName.getText().trim());
+            if (fileHandle.isExist()) {
+                fileHandle.clear();
+            }
+        }
+    }//GEN-LAST:event_btnEditNameMouseClicked
+
+    private void btnChangePasswordMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnChangePasswordMouseClicked
+        // TODO add your handling code here:
+        new ChangePassDialog(this, account);
+    }//GEN-LAST:event_btnChangePasswordMouseClicked
+
+    private void btnCardMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCardMouseClicked
+        // TODO add your handling code here:
+        if (account == null) {
+            new AlertUnknowAccountDialog(this).showAlert();
+            return;
+        }
+        turnOffAllActive();
+        this.cardContentLayout.show(this.contentPanel, "CardContent");
+        String sql = "Select a.startTime, a.endTime, b.name as productName, b.cost as price\n"
+                + "from lease a, product b, account d\n"
+                + "where a.productId = b.id\n"
+                + "and a.accountId = d.id\n"
+                + "and d.id = '" + account.getId() + "'";
+        ResultSet rs = db.query(sql);
+        Vector rowData = new Vector();
+        StringUtils su = new StringUtils();
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+        Vector columnNames = new Vector();
+        columnNames.add("Tên sản phẩm");
+        columnNames.add("Ngày bắt đầu thuê");
+        columnNames.add("Ngày kết thúc thuê");
+        columnNames.add("Số ngày thuê");
+        columnNames.add("Giá");
+        try {
+            while (rs.next()){
+                long endTime = rs.getLong("endTime");
+                long startTime = rs.getLong("startTime");
+                Date dateEnd = new Date(endTime);
+                if (dateEnd.before(new Date())) continue;
+                Vector tempRow = new Vector();
+                tempRow.add(rs.getString("productName"));
+                tempRow.add(dateFormat.format(startTime));
+                tempRow.add(dateFormat.format(endTime));
+                long numOfDay = (endTime - startTime) / 86400000;
+                tempRow.add(numOfDay);
+                String price = su.convertToPrice(numOfDay * (rs.getInt("price")));
+                tempRow.add(price + " VNĐ");
+                rowData.add(tempRow);
+            }
+            CardTable.setModel(new DefaultTableModel(rowData, columnNames));
+        } catch (SQLException ex) {
+            Logger.getLogger(DesignFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_btnCardMouseClicked
 
     /**
      * @param args the command line arguments
@@ -821,6 +1074,8 @@ public class DesignFrame extends javax.swing.JFrame {
     private javax.swing.JPanel ActiveHome;
     private javax.swing.JPanel ActiveXeso;
     private javax.swing.JPanel ActiveXetayga;
+    private javax.swing.JPanel CardContent;
+    private javax.swing.JTable CardTable;
     private javax.swing.JPanel FeedbackContent;
     private javax.swing.JPanel HomeContent;
     private javax.swing.JPanel MenuItemAccount;
@@ -833,20 +1088,31 @@ public class DesignFrame extends javax.swing.JFrame {
     private javax.swing.JPanel XetaygaContent;
     private javax.swing.JPanel XetaygaListProduct;
     private javax.swing.JLabel banner;
+    private javax.swing.JLabel btnCard;
+    private javax.swing.JPanel btnChangePassword;
+    private javax.swing.JLabel btnEditName;
     private javax.swing.JLabel btnLogout;
     private javax.swing.JLabel btnSearch;
+    private javax.swing.JPanel btnSubmit;
     private javax.swing.JPanel contentPanel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel18;
+    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel22;
+    private javax.swing.JLabel jLabel23;
+    private javax.swing.JLabel jLabel24;
+    private javax.swing.JLabel jLabel25;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -855,11 +1121,17 @@ public class DesignFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JSeparator jSeparator1;
     private javax.swing.JLabel labelHello;
     private javax.swing.JPanel panelBackground;
     private javax.swing.JPanel panelMenu;
     private javax.swing.JComboBox<String> producerFilterCombobox;
     private javax.swing.JTextField searchTextField;
     private javax.swing.JComboBox<String> sortCombobox;
+    private javax.swing.JTextField txtEditName;
+    private javax.swing.JTextField txtEditUsername;
+    private javax.swing.JTextArea txtFeedback;
     // End of variables declaration//GEN-END:variables
 }

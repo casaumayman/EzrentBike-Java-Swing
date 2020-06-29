@@ -59,8 +59,6 @@ public class LoginDialog extends javax.swing.JDialog {
         jSeparator3 = new javax.swing.JSeparator();
         txtPassword = new javax.swing.JPasswordField();
         chkRemember = new javax.swing.JCheckBox();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
         btnLogin = new javax.swing.JLabel();
         btnClose = new javax.swing.JLabel();
 
@@ -124,15 +122,6 @@ public class LoginDialog extends javax.swing.JDialog {
         chkRemember.setText("Nhớ tài khoản");
         jPanel2.add(chkRemember, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 220, 140, 40));
 
-        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel1.setText("Nếu chưa có tài khoản, vui lòng bấm đăng ký!");
-        jPanel2.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 260, 300, 40));
-
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/buttons/register.PNG"))); // NOI18N
-        jLabel5.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        jPanel2.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 260, 100, 40));
-
         btnLogin.setForeground(new java.awt.Color(204, 0, 51));
         btnLogin.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/buttons/login.PNG"))); // NOI18N
         btnLogin.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -172,7 +161,7 @@ public class LoginDialog extends javax.swing.JDialog {
         for (int i = 0; i < temp.length; i++) {
             password += temp[i];
         }
-        ResultSet rs = db.query("select a.username, b.name, a.id\n"
+        ResultSet rs = db.query("select a.username, b.name, a.id, a.profileId\n"
                 + "from account a, profile b\n"
                 + "where a.username = '" + username + "'\n"
                 + "    and a.password = '" + password + "'\n"
@@ -185,10 +174,17 @@ public class LoginDialog extends javax.swing.JDialog {
             rs.next();
             String name = rs.getString("name");
             String id = rs.getString("id");
+            int profileId = rs.getInt("profileId");
             if (chkRemember.isSelected()) {
-                fileHandle.write(id, username, name, AES.encrypt(password, "ENCRYPT_PASS"));
+                fileHandle.write(
+                        id, 
+                        username, 
+                        name, 
+                        AES.encrypt(password, "ENCRYPT_PASS"),
+                        profileId
+                );
             }
-            parentFrame.login(id, username, name);
+            parentFrame.login(id, username, name, profileId);
             this.dispose();
         } catch (SQLException ex) {
             Logger.getLogger(LoginDialog.class.getName()).log(Level.SEVERE, null, ex);
@@ -244,11 +240,9 @@ public class LoginDialog extends javax.swing.JDialog {
     private javax.swing.JLabel btnClose;
     private javax.swing.JLabel btnLogin;
     private javax.swing.JCheckBox chkRemember;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JSeparator jSeparator1;

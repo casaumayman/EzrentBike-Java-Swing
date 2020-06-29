@@ -45,4 +45,16 @@ public class MyDatabase {
         }
         return res;
     }
+    
+    public int execStatment(String sql) {
+        Statement st = null;
+        try {
+            Statement statement = con.createStatement();
+            int rowCount = statement.executeUpdate(sql);
+            return rowCount;
+        } catch (SQLException ex) {
+            Logger.getLogger(MyDatabase.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return 0;
+    }
 }

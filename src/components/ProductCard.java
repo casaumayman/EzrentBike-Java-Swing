@@ -5,6 +5,8 @@
  */
 package components;
 
+import entities.Account;
+import entities.Product;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -18,7 +20,7 @@ import services.StringUtils;
  *
  * @author HuyTuan
  */
-public class ProductCard extends javax.swing.JPanel implements Cloneable {
+public class ProductCard extends javax.swing.JPanel {
 
     /**
      * Creates new form ProductCard
@@ -27,12 +29,16 @@ public class ProductCard extends javax.swing.JPanel implements Cloneable {
     public int productPrice = 0;
     public String imgName;
     private JFrame parentContainer = null;
-    
+    private Account account = null;
+    private int id;
+    private String productName;
+    private String category;
+
     public ProductCard() {
         initComponents();
     }
-    
-    public ProductCard(String name, String producer, String category, int price, String imgName, JFrame parent) {
+
+    public ProductCard(int id, String name, String producer, String category, int price, String imgName, JFrame parent, Account ac) {
         initComponents();
         this.labelName.setText(name);
         this.labelProducer.setText(producer);
@@ -51,12 +57,11 @@ public class ProductCard extends javax.swing.JPanel implements Cloneable {
         ImageIcon imageIcon = new ImageIcon(dimg);
         labelImage.setIcon(imageIcon);
         parentContainer = parent;
+        account = ac;
+        this.id = id;
+        productName = name;
+        this.category = category;
     }
-    
-    @Override
-    public Object clone()throws CloneNotSupportedException{  
-	return (ProductCard)super.clone();  
-   }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -126,7 +131,14 @@ public class ProductCard extends javax.swing.JPanel implements Cloneable {
 
     private void btnRentMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRentMouseClicked
         // TODO add your handling code here:
-        new AlertUnknowAccountDialog(parentContainer).show();
+        if (account == null) {
+            new AlertUnknowAccountDialog(parentContainer).showAlert();
+            return;
+        }
+        new LeasePanel(parentContainer, 
+                new Product(productName, productPrice, imgName, category, producerName, id),
+                account
+        );
     }//GEN-LAST:event_btnRentMouseClicked
 
 
